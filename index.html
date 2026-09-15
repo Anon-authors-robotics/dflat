@@ -64,8 +64,9 @@
           struggle to scale: the <strong>problem dimension grows with the horizon</strong>, so long maneuvers become slow to plan.
         </li>
         <li>
-          <span class="hl-red">Feasibility</span>: trajectories that violate the dynamics must be corrected afterward, for example
-          through guidance or projection, which adds computation and <strong>does not guarantee a dynamically consistent result</strong>.
+          <span class="hl-red">Feasibility</span>: diffusion planners can denoise the full trajectory at once, but this
+          <strong>does not guarantee a dynamically consistent result</strong>, and violations must be corrected afterward
+          through projection, which adds more computation.
         </li>
       </ol>
     </section>
