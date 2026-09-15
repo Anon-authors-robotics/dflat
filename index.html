@@ -42,7 +42,7 @@
         in flat-output space. Because every trajectory produced during denoising is
         dynamically consistent, <span class="hl-blue">feasibility holds by construction</span>, avoiding the common pitfalls of
         <span class="hl-red">post-hoc corrections</span>, such as added computation and loss of feasibility.
-        On challenging tractor&ndash;trailer benchmarks, DFLAT solves complex long-horizon tasks in
+        On challenging tractor&ndash;trailer benchmarks, DFLAT can solve complex planning tasks in
         <strong>sub-second</strong> time.
       </p>
     </section>
@@ -59,8 +59,8 @@
       </p>
       <ol>
         <li>
-          <span class="hl-red">Scalability</span>: most diffusion planners denoise time-discretized control sequences, so the
-          <strong>problem dimension grows with the horizon</strong> and long maneuvers become slow to plan.
+          <span class="hl-red">Scalability</span>: diffusion planners can denoise time-discretized control sequences, but they
+          struggle to scale: the <strong>problem dimension grows with the horizon</strong>, so long maneuvers become slow to plan.
         </li>
         <li>
           <span class="hl-red">Feasibility</span>: trajectories that violate the dynamics must be corrected afterward, for example
@@ -72,9 +72,9 @@
     <section>
       <h2>Method</h2>
       <p>
-        DFLAT exploits differential flatness: a trajectory is described by a small set of <span class="hl-blue">Hermite curve</span>
-        parameters in the flat-output space (intermediate waypoints together with the endpoint tangents of each segment),
-        and the <strong>flat map recovers the full state and inputs</strong> from them.
+        DFLAT exploits differential flatness. It represents a trajectory in the flat-output space as a chain of
+        <span class="hl-blue">Hermite curve</span> segments, described by only a few intermediate waypoints and the tangents
+        at the ends of each segment. From these parameters, the <strong>inverse flatness maps recover the full state and inputs</strong>.
       </p>
 
       <ol class="steps">
@@ -99,8 +99,8 @@
         <figcaption>
           <strong>Fig. 2. Denoising in flat space.</strong> Top: trajectory refinement during DFLAT denoising on a
           parking-lot scenario from the <em>Long</em> benchmark, shown at four stages from the coarse initialization
-          (<em>i</em>&nbsp;=&nbsp;<em>N</em>) to the final solution (<em>i</em>&nbsp;=&nbsp;1). Red segments are forward
-          maneuvers, blue reverse, and purple markers the waypoints. Refining the waypoints and Hermite parameters yields a
+          (<em>i</em>&nbsp;=&nbsp;<em>N</em>) to the final solution (<em>i</em>&nbsp;=&nbsp;1). Red segments denote forward
+          maneuvers, blue segments denote reverse maneuvers, and purple markers show the waypoints. Refining the waypoints and Hermite parameters yields a
           smoother, lower-cost maneuver while remaining dynamically consistent. Bottom: the tractor&ndash;trailer tracking
           the final trajectory with a closed-loop controller, from step 1 to <em>K</em>.
         </figcaption>
@@ -119,19 +119,20 @@
         </figure>
         <div>
           <p>
-            DFLAT starts from a <strong>deliberately coarse initialization</strong>. A lightweight search-based planner connects the start
+            DFLAT starts from a <strong>coarse initialization</strong>. A lightweight search-based planner connects the start
             and goal through a few sparse waypoints; it runs quickly, but makes no attempt to optimize the trajectory itself.
             The subsequent denoising process is responsible for refining trajectory quality.
           </p>
           <p>
             Fig. 3 shows such an initialization on the T-map. The <span class="hl-red">initial trajectory</span> connects
-            the waypoints, but only through <strong>sharp turns</strong> that push the steering and hitch angles to extreme values.
+            the waypoints, but only through <strong>sharp turns</strong> that push the steering and hitch angles to extreme values,
+            so the maneuver starts out in a <strong>failure state</strong>.
           </p>
           <p>
             DFLAT resolves this by <strong>denoising the waypoints and the Hermite parameters jointly</strong>, refining both
             <em>where</em> the trajectory passes and <em>how</em> it passes through each waypoint.
             The <span class="hl-blue">refined trajectory</span> follows a smoother path
-            into the slot with much smaller steering and hitch angles, and remains <strong>dynamically consistent throughout</strong>.
+            into the slot with much smaller steering and hitch angles, and remains <strong>dynamically consistent</strong>.
           </p>
         </div>
       </div>
@@ -140,16 +141,17 @@
     <section>
       <h2>Preview Results</h2>
       <p>
-        Here we show how DFLAT compares with two of the baselines from our evaluation, Model Predictive Path Integral (MPPI) control and Safe Model Predictive Diffusion (Safe MPD), on two representative tasks from our benchmark.
-        In the short <strong>T-map</strong> task, the tractor&ndash;trailer must park inside a narrow slot. In the long-horizon
-        <strong>Parking Lot</strong> task, it must reach a goal slot on a different row, following a long route through
-        the aisles between parked vehicles. In each video, the orange hatched slot marks the goal and the blue curve
+        Here we show how DFLAT compares with two of the baselines from our evaluation, Model Predictive Path Integral (MPPI) control and Safe Model Predictive Diffusion (Safe MPD), on two representative tasks from our benchmark:
+        the <strong>T-map</strong> for short-horizon planning, where the tractor&ndash;trailer parks inside a narrow slot, and
+        the <strong>Parking Lot</strong> for long-horizon planning, where it reaches a goal slot on a different row by
+        following a long route through the aisles between parked vehicles. In each video, the orange hatched slot marks the goal and the blue curve
         traces the executed trajectory; the left video shows the T-map and the right video the Parking Lot.
       </p>
 
       <h3>Model Predictive Path Integral (MPPI)</h3>
       <p>
-        MPPI optimizes a time-discretized control sequence over a receding horizon. Although it produces accurate plans in
+        MPPI optimizes a time-discretized control sequence by sampling many perturbed control sequences, rolling them
+        out through the dynamics, and averaging them with weights based on their costs. Although it produces accurate plans in
         some cases, its failures typically end in collision: in both tasks shown here it <span class="hl-red">collides</span>,
         and in the Parking Lot the trailer also <span class="hl-red">jackknifes</span> close to the goal.
       </p>
@@ -164,8 +166,8 @@
 
       <h3>Safe Model Predictive Diffusion (Safe MPD)</h3>
       <p>
-        Safe MPD shields every sample to keep it safe and kinodynamically feasible, but it <strong>diffuses over
-        time-discretized controls</strong>. It can solve short-horizon tasks, yet on the long Parking Lot route it
+        Safe MPD performs model-based diffusion with shielded rollouts that prevent constraint violations, but it
+        <strong>diffuses over time-discretized controls</strong>. It can solve short-horizon tasks, yet on the long Parking Lot route it
         <span class="hl-red">does not reach the goal</span>, reflecting the scalability limit discussed above.
       </p>
       <div class="video-pair">
