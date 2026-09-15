@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="DFLAT: Model-based Diffusion on Differentially Flat Spaces for Long-Horizon Trajectory Optimization.">
+  <title>DFLAT: Model-based Diffusion on Differentially Flat Spaces</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="static/css/style.css?v=3">
+</head>
+<body>
+  <header class="hero container">
+    <h1>DFLAT</h1>
+    <p class="subtitle"><span class="nowrap">Model-based</span> Diffusion on Differentially Flat Spaces for <span class="nowrap">Long-Horizon</span> Trajectory Optimization</p>
+    <div class="authors">Anonymous Authors</div>
+  </header>
+
+  <div class="container teaser">
+    <figure>
+      <a href="static/images/main_figure.png?v=2" target="_blank">
+        <img src="static/images/main_figure.png?v=2" alt="DFLAT pipeline: coarse waypoint planning in flat space, iterative denoising of Hermite and waypoint parameters with cost evaluation in state space, and closed-loop execution of the nominal trajectory." width="2400" height="812">
+      </a>
+      <figcaption>
+        <strong>Fig. 1. Overview of DFLAT.</strong> DFLAT formulates long-horizon planning as a diffusion process over a compact
+        trajectory representation in flat-output space. Starting from a coarse, sparse set of waypoints, it iteratively denoises
+        the trajectory: at each diffusion step, candidates are sampled by perturbing the waypoints and the local segment
+        parameters, converted into dynamically feasible trajectories, and evaluated under the planning cost. The cost-weighted
+        average of these candidates gives an estimate of the denoised trajectory, which initializes the next step. As the noise
+        level decreases, this process progressively refines the coarse initialization into a low-cost trajectory, which is then
+        executed by a tracking controller.
+      </figcaption>
+    </figure>
+  </div>
+
+  <main class="container">
+    <section>
+      <p class="lead">
+        We present <strong>DFLAT</strong>, a training-free, model-based diffusion planner for
+        generating <em>long-horizon</em>, <em>dynamically feasible</em> trajectories. Instead of diffusing over
+        time-discretized controls, DFLAT denoises the waypoints and tangents of <span class="hl-blue">Hermite curves</span>
+        in flat-output space. Because every trajectory produced during denoising is
+        dynamically consistent, <span class="hl-blue">feasibility holds by construction</span>, avoiding the common pitfalls of
+        <span class="hl-red">post-hoc corrections</span>, such as added computation and loss of feasibility.
+        On challenging tractor&ndash;trailer benchmarks, DFLAT solves complex long-horizon tasks in
+        <strong>sub-second</strong> time.
+      </p>
+    </section>
+
+    <section>
+      <h2>Motivation</h2>
+      <p>
+        We target parking and maneuvering tasks for nonholonomic articulated vehicles, such as tractor&ndash;trailers, in
+        cluttered environments. The free space is <strong>non-convex</strong>, and reaching the goal may require the vehicle to change driving
+        direction several times, which makes these problems both <strong>long-horizon and tightly constrained</strong>. Diffusion models have
+        emerged as a powerful tool for motion planning, but in this setting they must deliver both
+        <strong>scalability</strong> and <strong>feasibility</strong>, and existing diffusion planners typically sacrifice one
+        for the other:
+      </p>
+      <ol>
+        <li>
+          <span class="hl-red">Scalability</span>: most diffusion planners denoise time-discretized control sequences, so the
+          <strong>problem dimension grows with the horizon</strong> and long maneuvers become slow to plan.
+        </li>
+        <li>
+          <span class="hl-red">Feasibility</span>: trajectories that violate the dynamics must be corrected afterward, for example
+          through guidance or projection, which adds computation and <strong>does not guarantee a dynamically consistent result</strong>.
+        </li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Method</h2>
+      <p>
+        DFLAT exploits differential flatness: a trajectory is described by a small set of <span class="hl-blue">Hermite curve</span>
+        parameters in the flat-output space (intermediate waypoints together with the endpoint tangents of each segment),
+        and the <strong>flat map recovers the full state and inputs</strong> from them.
+      </p>
+
+      <ol class="steps">
+        <li>
+          <div class="step-head"><span class="step-num">1</span><h4>Coarse initialization</h4></div>
+          <p>A cheap search-based prior provides a sparse set of coarse waypoints in flat-output space, without optimizing for trajectory quality.</p>
+        </li>
+        <li>
+          <div class="step-head"><span class="step-num">2</span><h4>Diffusion in flat space</h4></div>
+          <p>Waypoints and local segment parameters are iteratively denoised; each candidate maps to a dynamically feasible trajectory and is weighted by its cost.</p>
+        </li>
+        <li>
+          <div class="step-head"><span class="step-num">3</span><h4>Closed-loop execution</h4></div>
+          <p>The refined trajectory is passed to a downstream tracking controller to execute.</p>
+        </li>
+      </ol>
+
+      <figure>
+        <a href="static/images/diffusion_story.png?v=2" target="_blank">
+          <img src="static/images/diffusion_story.png?v=2" alt="Top row: flat-space samples of the Hermite segments concentrating over denoising steps N to 1 as the cost decreases, with forward segments in red, reverse segments in blue, and waypoints in purple. Bottom row: the tractor-trailer tracking the final trajectory from step 1 to K." width="2400" height="1031" loading="lazy">
+        </a>
+        <figcaption>
+          <strong>Fig. 2. Denoising in flat space.</strong> Top: trajectory refinement during DFLAT denoising on a
+          parking-lot scenario from the <em>Long</em> benchmark, shown at four stages from the coarse initialization
+          (<em>i</em>&nbsp;=&nbsp;<em>N</em>) to the final solution (<em>i</em>&nbsp;=&nbsp;1). Red segments are forward
+          maneuvers, blue reverse, and purple markers the waypoints. Refining the waypoints and Hermite parameters yields a
+          smoother, lower-cost maneuver while remaining dynamically consistent. Bottom: the tractor&ndash;trailer tracking
+          the final trajectory with a closed-loop controller, from step 1 to <em>K</em>.
+        </figcaption>
+      </figure>
+
+      <div class="split">
+        <figure>
+          <a href="static/images/t_waypoints_before_after.png" target="_blank">
+            <img src="static/images/t_waypoints_before_after.png" alt="T-map scenario before (red) and after (blue) denoising the waypoints and tangents, with a table of maximum steering angle, hitch angle, and steering rate." width="1200" height="1448" loading="lazy">
+          </a>
+          <figcaption>
+            <strong>Fig. 3. Refining a coarse initialization.</strong> Red: trajectory from the search-based prior.
+            Blue: after flat-output space denoising. The table reports the maximum steering angle, hitch angle, and
+            steering rate.
+          </figcaption>
+        </figure>
+        <div>
+          <p>
+            DFLAT starts from a <strong>deliberately coarse initialization</strong>. A lightweight search-based planner connects the start
+            and goal through a few sparse waypoints; it runs quickly, but makes no attempt to optimize the trajectory itself.
+            The subsequent denoising process is responsible for refining trajectory quality.
+          </p>
+          <p>
+            Fig. 3 shows such an initialization on the T-map. The <span class="hl-red">initial trajectory</span> connects
+            the waypoints, but only through <strong>sharp turns</strong> that push the steering and hitch angles to extreme values.
+          </p>
+          <p>
+            DFLAT resolves this by <strong>denoising the waypoints and the Hermite parameters jointly</strong>, refining both
+            <em>where</em> the trajectory passes and <em>how</em> it passes through each waypoint.
+            The <span class="hl-blue">refined trajectory</span> follows a smoother path
+            into the slot with much smaller steering and hitch angles, and remains <strong>dynamically consistent throughout</strong>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Preview Results</h2>
+      <p>
+        Here we show how DFLAT compares with two of the baselines from our evaluation, Model Predictive Path Integral (MPPI) control and Safe Model Predictive Diffusion (Safe MPD), on two representative tasks from our benchmark.
+        In the short <strong>T-map</strong> task, the tractor&ndash;trailer must park inside a narrow slot. In the long-horizon
+        <strong>Parking Lot</strong> task, it must reach a goal slot on a different row, following a long route through
+        the aisles between parked vehicles. In each video, the orange hatched slot marks the goal and the blue curve
+        traces the executed trajectory; the left video shows the T-map and the right video the Parking Lot.
+      </p>
+
+      <h3>Model Predictive Path Integral (MPPI)</h3>
+      <p>
+        MPPI optimizes a time-discretized control sequence over a receding horizon. Although it produces accurate plans in
+        some cases, its failures typically end in collision: in both tasks shown here it <span class="hl-red">collides</span>,
+        and in the Parking Lot the trailer also <span class="hl-red">jackknifes</span> close to the goal.
+      </p>
+      <div class="video-pair">
+        <figure>
+          <video src="static/videos/mppi_t.mp4?v=4" width="1270" height="1350" autoplay muted loop playsinline preload="auto" aria-label="MPPI in the T-map: collision."></video>
+        </figure>
+        <figure>
+          <video src="static/videos/mppi_parking.mp4?v=3" width="1350" height="1062" autoplay muted loop playsinline preload="auto" aria-label="MPPI in the parking lot: collision and jackknife."></video>
+        </figure>
+      </div>
+
+      <h3>Safe Model Predictive Diffusion (Safe MPD)</h3>
+      <p>
+        Safe MPD shields every sample to keep it safe and kinodynamically feasible, but it <strong>diffuses over
+        time-discretized controls</strong>. It can solve short-horizon tasks, yet on the long Parking Lot route it
+        <span class="hl-red">does not reach the goal</span>, reflecting the scalability limit discussed above.
+      </p>
+      <div class="video-pair">
+        <figure>
+          <video src="static/videos/safempd_t.mp4?v=4" width="1270" height="1350" autoplay muted loop playsinline preload="auto" aria-label="Safe MPD in the T-map: success."></video>
+        </figure>
+        <figure>
+          <video src="static/videos/safempd_parking.mp4?v=3" width="1350" height="1062" autoplay muted loop playsinline preload="auto" aria-label="Safe MPD in the parking lot: task incomplete."></video>
+        </figure>
+      </div>
+
+      <h3>DFLAT (ours)</h3>
+      <p>
+        DFLAT <strong>plans the entire maneuver at once</strong> over a handful of Hermite segments in flat-output space. It
+        <span class="hl-blue">reaches the goal in both tasks</span>, including the long Parking Lot route, without collision
+        or jackknifing.
+      </p>
+      <div class="video-pair">
+        <figure>
+          <video src="static/videos/dflat_t.mp4?v=4" width="1270" height="1350" autoplay muted loop playsinline preload="auto" aria-label="DFLAT in the T-map: success."></video>
+        </figure>
+        <figure>
+          <video src="static/videos/dflat_parking.mp4?v=3" width="1350" height="1062" autoplay muted loop playsinline preload="auto" aria-label="DFLAT in the parking lot: success."></video>
+        </figure>
+      </div>
+
+    </section>
+
+    <section>
+      <h2>Benchmark Results</h2>
+      <p>
+        We evaluate DFLAT on nine tractor&ndash;trailer environments, grouped into three tiers of increasing planning horizon:
+        <strong>short</strong>, <strong>moderate</strong>, and <strong>long</strong>. Short tasks are compact parking
+        maneuvers, moderate tasks require a reversal or a tight passage, and long tasks are extended routes through
+        cluttered lots.
+      </p>
+
+      <figure>
+        <video class="result-video" src="static/videos/dflat-benchmark.mp4#t=0.1" controls playsinline muted loop preload="metadata"
+               aria-label="DFLAT executing trajectories across nine tractor-trailer benchmark environments, grouped into rows outlined in green, orange, and red by planning horizon."></video>
+        <figcaption>
+          <strong>Fig. 4. Sample trajectories from DFLAT.</strong> Orange hatched slots mark the goal, and blue curves trace
+          the trajectory executed by the tractor&ndash;trailer; each panel cycles through 20 trials. Rows correspond to the
+          three tiers.
+          <em>Top</em> (green): short (<em>T-map</em>, <em>Courtyard</em>, <em>Island</em>).
+          <em>Middle</em> (orange): moderate (<em>U-turn</em>, <em>Compound Gate</em>, <em>Pinch Point</em>).
+          <em>Bottom</em> (red): long (<em>Mall</em>, <em>Parking</em>, <em>Zigzag</em>).
+          DFLAT produces a collision-free trajectory respecting the steering and jackknife limits in every case, at low latency.
+        </figcaption>
+      </figure>
+    </section>
+
+    <section>
+      <h2>DFLAT Playground</h2>
+      <p>
+        We provide the <strong>DFLAT Playground</strong>, an interactive demo that runs DFLAT entirely in the web
+        browser, with nothing to install. Load any environment from our benchmark, or set your own start and goal
+        poses and obstacles, and watch DFLAT plan the maneuver. The playground is available at
+        <a href="https://anonymousroboticsfan123.github.io/dflat-playground/" target="_blank" rel="noopener noreferrer">anonymousroboticsfan123.github.io/dflat-playground</a>.
+      </p>
+
+      <figure>
+        <video class="demo-video" src="static/videos/dflat-playground.mp4#t=0.1" width="1920" height="1080" controls playsinline muted loop preload="metadata"
+               aria-label="Screen recording of the DFLAT Playground planning a tractor-trailer trajectory in the web browser."></video>
+        <figcaption>
+          <strong>Fig. 5. DFLAT Playground.</strong> Screen recording of the playground running in the web browser
+          on a CPU (sped up). The start and goal poses and the obstacles are configurable, and every environment and trial
+          from our benchmark can be loaded and played. The playground uses an implementation optimized for batched
+          computation in the browser, so the computed trajectories may differ from those reported in the paper.
+        </figcaption>
+      </figure>
+    </section>
+
+  </main>
+
+</body>
+</html>
