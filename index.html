@@ -95,8 +95,8 @@
       </ol>
 
       <figure>
-        <a href="static/images/diffusion_story.png?v=2" target="_blank">
-          <img src="static/images/diffusion_story.png?v=2" alt="Top row: flat-space samples of the Hermite segments concentrating over denoising steps N to 1 as the cost decreases, with forward segments in red, reverse segments in blue, and waypoints in purple. Bottom row: the tractor-trailer tracking the final trajectory from step 1 to K." width="2400" height="1031" loading="lazy">
+        <a href="static/images/diffusion_story.png?v=3" target="_blank">
+          <img src="static/images/diffusion_story.png?v=3" alt="Top row: flat-space samples of the Hermite segments concentrating over denoising steps N to 1 as the cost decreases, with forward segments in red, reverse segments in blue, and waypoints in purple. Bottom row: the tractor-trailer tracking the final trajectory from step 1 to K." width="2400" height="1031" loading="lazy">
         </a>
         <figcaption>
           <strong>Fig. 2. Denoising in flat space.</strong> Top: trajectory refinement during DFLAT denoising on a
@@ -110,8 +110,8 @@
 
       <div class="split">
         <figure>
-          <a href="static/images/t_waypoints_before_after.png" target="_blank">
-            <img src="static/images/t_waypoints_before_after.png" alt="T-map scenario before (red) and after (blue) denoising the waypoints and tangents, with a table of maximum steering angle, hitch angle, and steering rate." width="1200" height="1448" loading="lazy">
+          <a href="static/images/t_waypoints_before_after.png?v=2" target="_blank">
+            <img src="static/images/t_waypoints_before_after.png?v=2" alt="T-map scenario before (red) and after (blue) denoising the waypoints and tangents, with a table of maximum steering angle, hitch angle, and steering rate." width="1200" height="1448" loading="lazy">
           </a>
           <figcaption>
             <strong>Fig. 3. Refining a coarse initialization.</strong> Red: trajectory from the search-based prior.
@@ -183,7 +183,7 @@
 
       <h3>DFLAT (ours)</h3>
       <p>
-        DFLAT <strong>plans the entire maneuver at once</strong> over a handful of Hermite segments in flat-output space. It
+        DFLAT <strong>plans the entire maneuver at once</strong> over a small set of Hermite segments in flat-output space. It
         <span class="hl-blue">reaches the goal in both tasks</span>, including the long Parking Lot route, without collision
         or jackknifing.
       </p>
